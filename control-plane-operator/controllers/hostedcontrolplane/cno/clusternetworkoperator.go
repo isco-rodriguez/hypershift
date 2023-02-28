@@ -407,8 +407,8 @@ kubectl --kubeconfig $kc config use-context default`,
 				`
 set -xeuo pipefail
 kc=/etc/hosted-kubernetes/kubeconfig
-sc=$(kubectl --kubeconfig $kc get validatingwebhookconfiguration multus.openshift.io -o jsonpath='{.webhooks[?(@.name == "multus-validating-config.k8s.io")].clientConfig.service}')
-if [[ -n $sc ]]; then kubectl --kubeconfig $kc delete validatingwebhookconfiguration multus.openshift.io; fi`,
+sc=$(kubectl --kubeconfig $kc get --ignore-not-found validatingwebhookconfiguration multus.openshift.io -o jsonpath='{.webhooks[?(@.name == "multus-validating-config.k8s.io")].clientConfig.service}')
+if [[ -n $sc ]]; then kubectl --kubeconfig $kc delete --ignore-not-found validatingwebhookconfiguration multus.openshift.io; fi`,
 			},
 			Name:  "remove-old-multus-validating-webhook-configuration",
 			Image: params.Images.CLI,
