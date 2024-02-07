@@ -1,4 +1,4 @@
-package snapshotcontroller
+package cco
 
 import (
 	"testing"
@@ -6,13 +6,14 @@ import (
 	hyperv1 "github.com/openshift/hypershift/api/v1beta1"
 	"github.com/openshift/hypershift/control-plane-operator/controllers/hostedcontrolplane/imageprovider"
 	"github.com/openshift/hypershift/control-plane-operator/controllers/hostedcontrolplane/manifests"
-	"github.com/openshift/hypershift/support/api"
+	hyperapi "github.com/openshift/hypershift/support/api"
 	"github.com/openshift/hypershift/support/testutil"
 	"github.com/openshift/hypershift/support/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/pointer"
 )
 
-func TestReconcileOperatorDeployment(t *testing.T) {
+func TestReconcileDeployment(t *testing.T) {
 	hcp := &hyperv1.HostedControlPlane{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test",
@@ -20,25 +21,26 @@ func TestReconcileOperatorDeployment(t *testing.T) {
 		},
 		Spec: hyperv1.HostedControlPlaneSpec{
 			ReleaseImage: "quay.io/ocp-dev/test-release-image:latest",
-			Platform: hyperv1.PlatformSpec{
-				Type: hyperv1.AWSPlatform,
+			IssuerURL:    "https://www.example.com",
+			Networking: hyperv1.ClusterNetworking{
+				APIServer: &hyperv1.APIServerNetworking{
+					Port: pointer.Int32(1234),
+				},
 			},
-			IssuerURL: "https://www.example.com",
 		},
 	}
 	images := map[string]string{
-		"cluster-csi-snapshot-controller-operator": "quay.io/openshift/cluster-csi-snapshot-controller-operator:latest",
-		"token-minter":                    "quay.io/openshift/token-minter:latest",
-		"csi-snapshot-controller":         "quay.io/openshift/csi-snapshot-controller:latest",
-		"csi-snapshot-validation-webhook": "quay.io/openshift/csi-snapshot-validation-webhook:latest",
+		"cloud-credential-operator": "quay.io/openshift/cloud-credential-operator:latest",
+		"token-minter":              "quay.io/openshift/token-minter:latest",
+		"availability-prober":       "quay.io/openshift/availability-prober:latest",
 	}
-	deployment := manifests.CSISnapshotControllerOperatorDeployment("test-namespace")
+	deployment := manifests.CloudCredentialOperatorDeployment("test-namespace")
 	imageProvider := imageprovider.NewFromImages(images)
 	params := NewParams(hcp, "1.0.0", imageProvider, true)
-	if err := ReconcileOperatorDeployment(deployment, params, hyperv1.NonePlatform); err != nil {
+	if err := ReconcileDeployment(deployment, params, hcp.Spec.Platform.Type); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	deploymentYaml, err := util.SerializeResource(deployment, api.Scheme)
+	deploymentYaml, err := util.SerializeResource(deployment, hyperapi.Scheme)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
