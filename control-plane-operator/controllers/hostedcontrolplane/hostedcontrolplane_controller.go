@@ -767,6 +767,9 @@ func (r *HostedControlPlaneReconciler) healthCheckKASLoadBalancers(ctx context.C
 	case !util.IsPublicHCP(hcp):
 		// When the cluster is private, checking the load balancers will depend on whether the load balancer is
 		// using the right subnets. To avoid uncertainty, we'll limit the check to the service endpoint.
+		if hcp.Spec.Platform.Type == hyperv1.IBMCloudPlatform {
+			return healthCheckKASEndpoint(manifests.KubeAPIServerService("").Name, config.KASSVCIBMCloudPort)
+		} 
 		return healthCheckKASEndpoint(manifests.KubeAPIServerService("").Name, config.KASSVCPort)
 	case serviceStrategy.Type == hyperv1.Route:
 		externalRoute := manifests.KubeAPIServerExternalPublicRoute(hcp.Namespace)
@@ -781,6 +784,9 @@ func (r *HostedControlPlaneReconciler) healthCheckKASLoadBalancers(ctx context.C
 	case serviceStrategy.Type == hyperv1.LoadBalancer:
 		svc := manifests.KubeAPIServerService(hcp.Namespace)
 		port := config.KASSVCPort
+		if hcp.Spec.Platform.Type == hyperv1.IBMCloudPlatform {
+			port = config.KASSVCIBMCloudPort
+		} 
 		if hcp.Spec.Platform.Type == hyperv1.AzurePlatform {
 			// If Azure we get the SVC handling the LB.
 			// TODO(alberto): remove this hack when having proper traffic management for Azure.
@@ -1211,6 +1217,9 @@ func (r *HostedControlPlaneReconciler) reconcileAPIServerService(ctx context.Con
 	p := kas.NewKubeAPIServerServiceParams(hcp)
 	apiServerService := manifests.KubeAPIServerService(hcp.Namespace)
 	kasSVCPort := config.KASSVCPort
+	if hcp.Spec.Platform.Type == hyperv1.IBMCloudPlatform {
+		kasSVCPort = config.KASSVCIBMCloudPort
+	}
 	if hcp.Spec.Platform.Type == hyperv1.AzurePlatform {
 		// For Azure we currently hardcode 7443 for the SVC LB as 6443 collides with public LB rule for the management cluster.
 		// https://bugzilla.redhat.com/show_bug.cgi?id=2060650
@@ -1634,6 +1643,9 @@ func (r *HostedControlPlaneReconciler) reconcileAPIServerServiceStatus(ctx conte
 	}
 
 	kasSVCLBPort := config.KASSVCPort
+	if hcp.Spec.Platform.Type == hyperv1.IBMCloudPlatform {
+		kasSVCLBPort = config.KASSVCIBMCloudPort
+	}
 	if hcp.Spec.Platform.Type == hyperv1.AzurePlatform {
 		// If Azure we get the SVC handling the LB.
 		// TODO(alberto): remove this hack when having proper traffic management for Azure.
